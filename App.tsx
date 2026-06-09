@@ -11,10 +11,12 @@ import { CreateNote } from './pages/dashboard/CreateNote';
 import { SingleNote } from './pages/dashboard/SingleNote';
 import { Account } from './pages/dashboard/Account';
 import { RoutePath } from './types';
+import { ResetPasswordOverlay } from './components/auth/ResetPasswordOverlay';
 
 function App() {
   return (
     <AuthProvider>
+      <ResetPasswordOverlay />
       <Router>
         <Routes>
           {/* Public Auth Routes */}

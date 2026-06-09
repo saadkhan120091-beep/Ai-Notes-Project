@@ -11,6 +11,8 @@ export const SignIn: React.FC = () => {
   const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isForgotMode, setIsForgotMode] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
 
   // Retrieve state passed from SignUp
   const successMessage = location.state?.successMessage;
@@ -40,6 +42,33 @@ export const SignIn: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Login error:', err);
+      setError(err?.message || 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    const formData = new FormData(e.currentTarget as HTMLFormElement);
+    const email = formData.get('email') as string;
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/`,
+      });
+
+      if (error) {
+        setError(error.message);
+      } else {
+        setSuccess('Password reset link sent! Please check your inbox.');
+      }
+    } catch (err: any) {
+      console.error('Password reset error:', err);
       setError(err?.message || 'An unexpected error occurred');
     } finally {
       setLoading(false);
@@ -137,67 +166,118 @@ export const SignIn: React.FC = () => {
 
             {/* Typography */}
             <h1 className="text-3xl font-bold tracking-tight text-slate-900 drop-shadow-sm text-center">
-              Welcome Back
+              {isForgotMode ? "Reset Password" : "Welcome Back"}
             </h1>
             <p className="mt-2.5 text-[15px] font-medium text-slate-500 text-center max-w-[280px] leading-relaxed">
-              Enter your credentials to access your AI workspace.
+              {isForgotMode 
+                ? "Enter your email address and we'll send you a password reset link." 
+                : "Enter your credentials to access your AI workspace."}
             </p>
 
             {/* Success Message Banner */}
-            {successMessage && (
+            {(success || successMessage) && (
                <div className="mt-6 flex w-full items-start gap-3 rounded-xl border border-emerald-200/60 bg-emerald-50/80 p-4 text-sm text-emerald-800 backdrop-blur-md shadow-sm animate-in fade-in slide-in-from-top-2">
                   <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-                  <span className="font-medium leading-relaxed">{successMessage}</span>
+                  <span className="font-medium leading-relaxed">{success || successMessage}</span>
                </div>
             )}
           
             {/* Form */}
-            <form onSubmit={handleSubmit} className="mt-10 w-full space-y-6">
-              <div className="space-y-4">
-                <Input 
-                  id="email"
-                  name="email"
-                  type="email" 
-                  autoComplete="email" 
-                  required
-                  defaultValue={prefilledEmail}
-                  placeholder="name@example.com" 
-                  icon={Mail}
-                  className="bg-white/60 focus:bg-white"
-                />
-                <div className="relative">
+            {!isForgotMode ? (
+              <form onSubmit={handleSubmit} className="mt-10 w-full space-y-6">
+                <div className="space-y-4">
                   <Input 
-                    id="password" 
-                    name="password"
-                    type="password"
-                    autoComplete="current-password"
+                    id="email"
+                    name="email"
+                    type="email" 
+                    autoComplete="email" 
                     required
-                    placeholder="Enter your password" 
-                    icon={Lock}
+                    defaultValue={prefilledEmail}
+                    placeholder="name@example.com" 
+                    icon={Mail}
+                    className="bg-white/60 focus:bg-white"
+                  />
+                  <div className="relative">
+                    <Input 
+                      id="password" 
+                      name="password"
+                      type="password"
+                      autoComplete="current-password"
+                      required
+                      placeholder="Enter your password" 
+                      icon={Lock}
+                      className="bg-white/60 focus:bg-white"
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between px-1">
+                    <label className="flex items-center gap-2.5 cursor-pointer group/chk select-none">
+                        <div className="relative flex items-center justify-center w-5 h-5 rounded-[6px] border border-slate-300 bg-white/50 shadow-sm transition-all group-hover/chk:border-indigo-500 group-hover/chk:shadow-md">
+                          <input type="checkbox" className="peer absolute inset-0 opacity-0 cursor-pointer" />
+                          <Check size={12} className="text-indigo-600 opacity-0 transition-opacity peer-checked:opacity-100 font-bold" strokeWidth={4} />
+                        </div>
+                        <span className="text-xs font-medium text-slate-500 group-hover/chk:text-slate-800 transition-colors">Remember me</span>
+                    </label>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setIsForgotMode(true);
+                        setError(null);
+                        setSuccess(null);
+                      }}
+                      className="text-xs font-semibold text-indigo-600 hover:text-indigo-500 transition-colors hover:underline decoration-2 underline-offset-2"
+                    >
+                      Forgot password?
+                    </button>
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full h-[52px] text-[15px] shadow-[0_20px_40px_-10px_rgba(79,70,229,0.5)]" 
+                  isLoading={loading}
+                >
+                  Sign In
+                </Button>
+              </form>
+            ) : (
+              <form onSubmit={handleForgotPasswordSubmit} className="mt-10 w-full space-y-6">
+                <div className="space-y-4">
+                  <Input 
+                    id="reset-email"
+                    name="email"
+                    type="email" 
+                    autoComplete="email" 
+                    required
+                    placeholder="name@example.com" 
+                    icon={Mail}
                     className="bg-white/60 focus:bg-white"
                   />
                 </div>
-              </div>
-              
-              <div className="flex items-center justify-between px-1">
-                  <label className="flex items-center gap-2.5 cursor-pointer group/chk select-none">
-                      <div className="relative flex items-center justify-center w-5 h-5 rounded-[6px] border border-slate-300 bg-white/50 shadow-sm transition-all group-hover/chk:border-indigo-500 group-hover/chk:shadow-md">
-                        <input type="checkbox" className="peer absolute inset-0 opacity-0 cursor-pointer" />
-                        <Check size={12} className="text-indigo-600 opacity-0 transition-opacity peer-checked:opacity-100 font-bold" strokeWidth={4} />
-                      </div>
-                      <span className="text-xs font-medium text-slate-500 group-hover/chk:text-slate-800 transition-colors">Remember me</span>
-                  </label>
-                  <a href="#" className="text-xs font-semibold text-indigo-600 hover:text-indigo-500 transition-colors hover:underline decoration-2 underline-offset-2">Forgot password?</a>
-              </div>
 
-              <Button 
-                type="submit" 
-                className="w-full h-[52px] text-[15px] shadow-[0_20px_40px_-10px_rgba(79,70,229,0.5)]" 
-                isLoading={loading}
-              >
-                Sign In
-              </Button>
-            </form>
+                <Button 
+                  type="submit" 
+                  className="w-full h-[52px] text-[15px] shadow-[0_20px_40px_-10px_rgba(79,70,229,0.5)]" 
+                  isLoading={loading}
+                >
+                  Send Reset Link
+                </Button>
+
+                <div className="text-center mt-6">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsForgotMode(false);
+                      setError(null);
+                      setSuccess(null);
+                    }}
+                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-500 transition-colors hover:underline decoration-2 underline-offset-2"
+                  >
+                    Back to sign in
+                  </button>
+                </div>
+              </form>
+            )}
 
             {/* Error Message Banner */}
             {error && (
